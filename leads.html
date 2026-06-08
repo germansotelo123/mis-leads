@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline de Leads</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F5F2ED;
+  --surface: #FFFFFF;
+  --surface2: #EDEAE4;
+  --border: #D8D3CB;
+  --text: #1A1714;
+  --text2: #6B6560;
+  --text3: #A09A93;
+  --accent: #C84B2F;
+  --accent-li: #2563EB;
+  --new: #1A1714;
+  --contacted: #2563EB;
+  --warm: #C88A2F;
+  --close: #2E7D32;
+  --font-head: 'Fraunces', Georgia, serif;
+  --font-mono: 'DM Mono', monospace;
+  --r: 6px;
+  --r-lg: 12px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 13px; min-height: 100vh; }
+input, select, textarea, button { font-family: var(--font-mono); font-size: 13px; }
+
+/* LAYOUT */
+.shell { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* HEADER */
+header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap; }
+.logo { display: flex; flex-direction: column; gap: 2px; }
+.logo-title { font-family: var(--font-head); font-size: 32px; font-weight: 600; letter-spacing: -0.5px; line-height: 1; color: var(--text); }
+.logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+
+/* ALERT BANNER */
+#alert-banner { background: var(--text); color: var(--bg); border-radius: var(--r-lg); padding: 14px 18px; margin-bottom: 1.5rem; display: none; }
+#alert-banner.show { display: block; }
+.alert-title { font-family: var(--font-head); font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.alert-items { display: flex; flex-direction: column; gap: 4px; }
+.alert-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #C8C4BE; }
+.alert-item::before { content: '›'; color: var(--accent); font-size: 16px; }
+
+/* TOGGLE */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+.toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; inset: 0; background: var(--border); border-radius: 20px; transition: background 0.2s; }
+.slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+.toggle input:checked + .slider { background: var(--text); }
+.toggle input:checked + .slider::before { transform: translateX(16px); }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 2rem; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; }
+.stat-n { font-family: var(--font-head); font-size: 36px; font-weight: 600; line-height: 1; color: var(--text); }
+.stat-l { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* BOARD */
+.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px; min-height: 300px; display: flex; flex-direction: column; }
+.col-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.col-name { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+.col-count { font-family: var(--font-head); font-size: 18px; font-weight: 600; }
+.col-new .col-count { color: var(--new); }
+.col-contacted .col-count { color: var(--contacted); }
+.col-warm .col-count { color: var(--warm); }
+.col-close .col-count { color: var(--close); }
+
+/* CARD */
+.card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
+.card:hover { border-color: var(--text); transform: translateY(-1px); }
+.card.stale { border-left: 3px solid var(--accent); }
+.card-name { font-weight: 500; margin-bottom: 2px; color: var(--text); }
+.card-co { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; }
+.src { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+.src-email { background: #FDECEA; color: #C84B2F; }
+.src-linkedin { background: #EBF2FF; color: #2563EB; }
+.card-days { font-size: 11px; color: var(--text3); }
+.card-days.overdue { color: var(--accent); font-weight: 500; }
+.add-row { margin-top: auto; padding-top: 8px; }
+.add-col-btn { width: 100%; padding: 7px; border: 1px dashed var(--border); border-radius: var(--r); background: transparent; color: var(--text3); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+.add-col-btn:hover { border-color: var(--text2); color: var(--text2); }
+
+/* BTN */
+.btn { padding: 8px 16px; border-radius: var(--r); border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; transition: background 0.15s; font-weight: 500; }
+.btn:hover { background: var(--surface2); }
+.btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn-primary:hover { background: #3A3530; }
+.btn-danger { background: transparent; border-color: #F9A8A8; color: #C0392B; }
+.btn-danger:hover { background: #FEF2F2; }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(26,23,20,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.5rem; width: 360px; max-width: 95vw; }
+.modal h2 { font-family: var(--font-head); font-size: 22px; font-weight: 600; margin-bottom: 1.25rem; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text2); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: var(--r); background: var(--bg); color: var(--text);
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--text); }
+.field textarea { height: 70px; resize: none; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+
+/* DETAIL */
+.detail-grid { display: flex; flex-direction: column; gap: 0; }
+.drow { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.drow:last-child { border-bottom: none; }
+.dlabel { color: var(--text2); }
+.dval { font-weight: 500; text-align: right; max-width: 200px; word-break: break-word; }
+.stage-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 1rem; }
+.stage-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--r); border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--text2); transition: background 0.12s; }
+.stage-btn:hover { background: var(--surface2); }
+.follow-row { display: flex; align-items: center; gap: 8px; margin-top: 1rem; padding: 10px 12px; background: #FFFBF0; border: 1px solid #EDD87A; border-radius: var(--r); font-size: 12px; color: #7A6010; }
+
+/* SEARCH */
+.search-bar { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); margin-bottom: 1.25rem; }
+.search-bar:focus { outline: none; border-color: var(--text); }
+
+@media (max-width: 700px) {
+  .board { grid-template-columns: 1fr 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px) {
+  .board { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="logo">
+      <div class="logo-title">Pipeline</div>
+      <div class="logo-sub">Seguimiento de leads</div>
+    </div>
+    <div class="header-actions">
+      <div class="toggle-wrap">
+        <span>Alertas matutinas</span>
+        <label class="toggle" title="Activar/desactivar alertas de seguimiento">
+          <input type="checkbox" id="alerts-toggle" onchange="toggleAlerts()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="openAdd(null)">+ Nuevo lead</button>
+    </div>
+  </header>
+
+  <div id="alert-banner">
+    <div class="alert-title">Buenos días — estos leads necesitan atención hoy</div>
+    <div class="alert-items" id="alert-list"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <input class="search-bar" placeholder="Buscar por nombre, empresa o notas…" oninput="render(this.value)" id="search">
+  <div class="board" id="board"></div>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+const COLS = [
+  { id: 'new', label: 'Nuevo', cls: 'col-new' },
+  { id: 'contacted', label: 'Contactado', cls: 'col-contacted' },
+  { id: 'warm', label: 'Interesado', cls: 'col-warm' },
+  { id: 'close', label: 'Cerrar', cls: 'col-close' },
+];
+
+const FOLLOW_DAYS = { new: 3, contacted: 5, warm: 7, close: 2 };
+
+function loadLeads() {
+  try { return JSON.parse(localStorage.getItem('pipeline_leads') || '[]'); } catch { return []; }
+}
+function saveLeads(l) { localStorage.setItem('pipeline_leads', JSON.stringify(l)); }
+function loadAlerts() { return localStorage.getItem('pipeline_alerts') === 'true'; }
+function saveAlerts(v) { localStorage.setItem('pipeline_alerts', v); }
+
+let leads = loadLeads();
+let nextId = leads.length ? Math.max(...leads.map(l => l.id)) + 1 : 1;
+
+if (!leads.length) {
+  leads = [
+    { id: 1, name: 'Carlos Mendoza', company: 'TechNova MX', source: 'linkedin', status: 'new', email: 'c.mendoza@technova.mx', notes: 'VP de Operaciones, interesado en automatización', date: daysAgo(4) },
+    { id: 2, name: 'Laura Ríos', company: 'Grupo Alfa', source: 'email', status: 'contacted', email: 'lrios@grupoalfa.com', notes: 'Respondió con interés inicial', date: daysAgo(6) },
+    { id: 3, name: 'Sofía Garza', company: 'Innomax', source: 'linkedin', status: 'warm', email: 'sgarza@innomax.io', notes: 'Reunión pendiente de confirmar', date: daysAgo(2) },
+    { id: 4, name: 'Pedro Leal', company: 'DataFlow', source: 'email', status: 'close', email: 'pleal@dataflow.com', notes: 'Enviando propuesta esta semana', date: daysAgo(3) },
+  ];
+  nextId = 5;
+  saveLeads(leads);
+}
+
+function daysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().split('T')[0];
+}
+function daysSince(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(diff / 86400000);
+}
+function isStale(lead) {
+  return daysSince(lead.date) >= FOLLOW_DAYS[lead.status];
+}
+function fmt(d) {
+  if (!d) return '—';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+// ALERTS
+document.getElementById('alerts-toggle').checked = loadAlerts();
+function toggleAlerts() {
+  const v = document.getElementById('alerts-toggle').checked;
+  saveAlerts(v);
+  renderAlertBanner();
+}
+function renderAlertBanner() {
+  const on = loadAlerts();
+  const banner = document.getElementById('alert-banner');
+  if (!on) { banner.classList.remove('show'); return; }
+  const stale = leads.filter(isStale);
+  if (!stale.length) { banner.classList.remove('show'); return; }
+  banner.classList.add('show');
+  document.getElementById('alert-list').innerHTML = stale.map(l =>
+    `<div class="alert-item">${l.name} · ${l.company} — ${daysSince(l.date)} días sin movimiento (${COLS.find(c=>c.id===l.status).label})</div>`
+  ).join('');
+}
+
+function renderStats() {
+  const t = leads.length;
+  const em = leads.filter(l => l.source === 'email').length;
+  const li = leads.filter(l => l.source === 'linkedin').length;
+  const cl = leads.filter(l => l.status === 'close').length;
+  document.getElementById('stats').innerHTML = [
+    [t, 'Total leads'],
+    [em, 'Correo'],
+    [li, 'LinkedIn'],
+    [cl, 'Por cerrar'],
+  ].map(([n, l]) => `<div class="stat"><div class="stat-n">${n}</div><div class="stat-l">${l}</div></div>`).join('');
+}
+
+function render(q = '') {
+  const query = (q || document.getElementById('search').value || '').toLowerCase();
+  const filtered = query
+    ? leads.filter(l => [l.name, l.company, l.notes, l.email].join(' ').toLowerCase().includes(query))
+    : leads;
+  renderStats();
+  renderAlertBanner();
+  document.getElementById('board').innerHTML = COLS.map(col => {
+    const cards = filtered.filter(l => l.status === col.id);
+    return `<div class="col ${col.cls}">
+      <div class="col-head">
+        <span class="col-name">${col.label}</span>
+        <span class="col-count">${cards.length}</span>
+      </div>
+      ${cards.map(l => {
+        const days = daysSince(l.date);
+        const stale = isStale(l);
+        return `<div class="card ${stale ? 'stale' : ''}" onclick="openDetail(${l.id})">
+          <div class="card-name">${l.name}</div>
+          <div class="card-co">${l.company}</div>
+          <div class="card-foot">
+            <span class="src ${l.source === 'email' ? 'src-email' : 'src-linkedin'}">${l.source === 'email' ? 'Email' : 'LinkedIn'}</span>
+            <span class="card-days ${stale ? 'overdue' : ''}">${days === 0 ? 'hoy' : `hace ${days}d`}</span>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="add-row"><button class="add-col-btn" onclick="openAdd('${col.id}')">+ agregar</button></div>
+    </div>`;
+  }).join('');
+}
+
+function closeModal() { document.getElementById('modal-root').innerHTML = ''; }
+
+function openAdd(status) {
+  const colOpts = COLS.map(c => `<option value="${c.id}" ${c.id === (status || 'new') ? 'selected' : ''}>${c.label}</option>`).join('');
+  document.getElementById('modal-root').innerHTML = `
+    <div class="overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h2>Nuevo lead</h2>
+        <div class="field"><label>Nombre</label><input id="f-name" placeholder="Ej. María López" autofocus></div>
+        <div class="field"><label>Empresa</label><input id="f-company" placeholder="Ej. Empresa SA de CV"></div>
+        <div class="field"><label>Correo</label><input id="f-email" type="email" placeholder="contacto@empresa.com"></div>
+        <div class="field"><label>Fuente</label><select id="f-source"><option value="linkedin">LinkedIn</option><option value="email">Correo</option></select></div>
+        <div class="field"><label>Etapa</label><select id="f-status">${colOpts}</select></div>
+        <div class="field"><label>Notas</label><textarea id="f-notes" placeholder="Contexto, interés, próximos pasos…"></textarea></div>
+        <div class="modal-foot">
+          <button class="btn" onclick="closeModal()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveLead()">Guardar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function saveLead() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  leads.push({
+    id: nextId++,
+    name,
+    company: document.getElementById('f-company').value.trim() || '—',
+    email: document.getElementById('f-email').value.trim(),
+    source: document.getElementById('f-source').value,
+    status: document.getElementById('f-status').value,
+    notes: document.getElementById('f-notes').value.trim(),
+    date: new Date().toISOString().split('T')[0],
+  });
+  saveLeads(leads);
+  closeModal(); render();
+}
+
+function openDetail(id) {
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+  const days = daysSince(l.date);
+  const stale = isStale(l);
+  const stageBtns = COLS.filter(c => c.id !== l.status)
+    .map(c => `<button class="stage-btn" onclick="moveLead(${id},'${c.id}')">${c.label} →</button>`).join('');
+  document.getElementById('modal-root').innerHTML = `
+    <div class="overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h2>${l.name}</h2>
+        <div class="detail-grid">
+          <div class="drow"><span class="dlabel">Empresa</span><span class="dval">${l.company}</span></div>
+          <div class="drow"><span class="dlabel">Correo</span><span class="dval" style="color:var(--accent-li)">${l.email || '—'}</span></div>
+          <div class="drow"><span class="dlabel">Fuente</span><span class="dval">${l.source === 'email' ? '✉️ Correo' : '🔗 LinkedIn'}</span></div>
+          <div class="drow"><span class="dlabel">Etapa</span><span class="dval">${COLS.find(c => c.id === l.status).label}</span></div>
+          <div class="drow"><span class="dlabel">Último contacto</span><span class="dval">${fmt(l.date)} (hace ${days}d)</span></div>
+          ${l.notes ? `<div class="drow"><span class="dlabel">Notas</span><span class="dval">${l.notes}</span></div>` : ''}
+        </div>
+        ${stale ? `<div class="follow-row">⚠️ Este lead lleva ${days} días sin movimiento — es momento de hacer seguimiento.</div>` : ''}
+        <div style="font-size:11px;color:var(--text3);margin-top:1rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Mover a etapa</div>
+        <div class="stage-btns">${stageBtns}</div>
+        <div class="modal-foot" style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">
+          <button class="btn btn-danger" onclick="deleteLead(${id})">Eliminar</button>
+          <button class="btn" onclick="markContacted(${id})">Marcar contactado hoy</button>
+          <button class="btn" onclick="closeModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function moveLead(id, status) {
+  const l = leads.find(x => x.id === id);
+  if (l) { l.status = status; l.date = new Date().toISOString().split('T')[0]; }
+  saveLeads(leads); closeModal(); render();
+}
+function markContacted(id) {
+  const l = leads.find(x => x.id === id);
+  if (l) l.date = new Date().toISOString().split('T')[0];
+  saveLeads(leads); closeModal(); render();
+}
+function deleteLead(id) {
+  leads = leads.filter(x => x.id !== id);
+  saveLeads(leads); closeModal(); render();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+render();
+</script>
+</body>
+</html>
