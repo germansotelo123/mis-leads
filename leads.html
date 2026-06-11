@@ -21,7 +21,7 @@ input, select, textarea, button { font-family: var(--font-mono); font-size: 13px
 .shell { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap; }
 .logo-title { font-family: var(--font-head); font-size: 32px; font-weight: 600; letter-spacing: -0.5px; line-height: 1; }
-.logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+.logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; display: flex; align-items: center; gap: 5px; }
 .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 #alert-banner { background: var(--text); color: var(--bg); border-radius: var(--r-lg); padding: 14px 18px; margin-bottom: 1.5rem; display: none; }
 #alert-banner.show { display: block; }
@@ -92,13 +92,17 @@ header { display: flex; align-items: flex-end; justify-content: space-between; m
 .follow-row { display: flex; align-items: center; gap: 8px; margin-top: 1rem; padding: 10px 12px; background: #FFFBF0; border: 1px solid #EDD87A; border-radius: var(--r); font-size: 12px; color: #7A6010; }
 .search-bar { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); margin-bottom: 1.25rem; }
 .search-bar:focus { outline: none; border-color: var(--text); }
-.toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: var(--r); font-size: 13px; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 200; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: var(--r); font-size: 13px; opacity: 0; transform: translateY(10px); transition: all 0.3s; z-index: 200; pointer-events: none; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast.error { background: var(--accent); }
-.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 4px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; display: inline-block; flex-shrink: 0; }
 .sync-dot.ok { background: #2E7D32; }
-.sync-dot.syncing { background: #C88A2F; }
+.sync-dot.syncing { background: #C88A2F; animation: pulse 1s infinite; }
 .sync-dot.err { background: var(--accent); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 12px; color: var(--text2); font-size: 13px; }
+.spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 700px) { .board { grid-template-columns: 1fr 1fr; } .stats { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 420px) { .board { grid-template-columns: 1fr; } }
 </style>
@@ -108,7 +112,7 @@ header { display: flex; align-items: flex-end; justify-content: space-between; m
   <header>
     <div class="logo">
       <div class="logo-title">Pipeline</div>
-      <div class="logo-sub"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Conectando…</span></div>
+      <div class="logo-sub"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Cargando leads…</span></div>
     </div>
     <div class="header-actions">
       <div class="toggle-wrap">
@@ -129,14 +133,14 @@ header { display: flex; align-items: flex-end; justify-content: space-between; m
 
   <div class="stats" id="stats"></div>
   <input class="search-bar" placeholder="Buscar por nombre, empresa, teléfono o notas…" oninput="render(this.value)">
-  <div class="board" id="board"></div>
+  <div id="board"><div class="loading-screen"><div class="spinner"></div>Cargando tus leads desde Google Sheets…</div></div>
 </div>
 
 <div id="modal-root"></div>
 <div class="toast" id="toast"></div>
 
 <script>
-var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwntMgXlM9xgrhe26Qh7UdxqAxmW8D6Zv7gB5ENFKFLLXs9mdKrE6CroIuE2Ax_Cz88rA/exec';
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbx2qVDNyDY1Q9RQ88JjFEw_DiUlYP6izY3T0arn3DtgpovREFY_GLrV_NjoY6iAhgI-9w/exec';
 
 var COLS = [
   { id: 'new', label: 'Nuevo', cls: 'col-new' },
@@ -155,42 +159,24 @@ var SOURCES = [
 ];
 
 var FOLLOW_DAYS = { new: 3, contacted: 5, warm: 7, close: 2 };
+var leads = [];
+var nextId = 1;
 
-function loadLeads() { try { return JSON.parse(localStorage.getItem('pipeline_leads') || '[]'); } catch(e) { return []; } }
-function saveLocal(l) { localStorage.setItem('pipeline_leads', JSON.stringify(l)); }
 function loadAlerts() { return localStorage.getItem('pipeline_alerts') === 'true'; }
 function saveAlerts(v) { localStorage.setItem('pipeline_alerts', v); }
-
-var leads = loadLeads();
-var nextId = leads.length ? Math.max.apply(null, leads.map(function(l){ return l.id; })) + 1 : 1;
-
-if (!leads.length) {
-  leads = [
-    { id:1, name:'Carlos Mendoza', company:'TechNova MX', source:'linkedin', status:'new', email:'c.mendoza@technova.mx', phone:'+52 81 1234 5678', notes:'VP de Operaciones', date: daysAgo(4) },
-    { id:2, name:'Laura Ríos', company:'Grupo Alfa', source:'email', status:'contacted', email:'lrios@grupoalfa.com', phone:'', notes:'Respondió con interés', date: daysAgo(6) },
-    { id:3, name:'Sofía Garza', company:'Innomax', source:'exposicion', status:'warm', email:'sgarza@innomax.io', phone:'+52 81 9876 5432', notes:'Conocida en Expo Monterrey', date: daysAgo(2) },
-    { id:4, name:'Pedro Leal', company:'DataFlow', source:'referido', status:'close', email:'pleal@dataflow.com', phone:'', notes:'Lo recomendó Carlos M.', date: daysAgo(3) },
-  ];
-  nextId = 5;
-  saveLocal(leads);
-}
-
-function daysAgo(n) { var d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().split('T')[0]; }
 function daysSince(ds) { return Math.floor((Date.now() - new Date(ds).getTime()) / 86400000); }
 function isStale(l) { return daysSince(l.date) >= FOLLOW_DAYS[l.status]; }
 function fmt(d) { if(!d) return '—'; var p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-function srcInfo(id) { return SOURCES.find(function(s){return s.id===id;}) || {label:id, cls:'src-email'}; }
+function srcInfo(id) { return SOURCES.find(function(s){return s.id===id;}) || {label:id||'—', cls:'src-email'}; }
 
-// SYNC STATUS
-function setSyncStatus(state) {
+function setSyncStatus(state, msg) {
   var dot = document.getElementById('sync-dot');
   var label = document.getElementById('sync-label');
-  if (state === 'ok') { dot.className='sync-dot ok'; label.textContent='Sincronizado con Google Sheets'; }
-  else if (state === 'syncing') { dot.className='sync-dot syncing'; label.textContent='Guardando…'; }
-  else { dot.className='sync-dot err'; label.textContent='Sin conexión — guardado local'; }
+  var msgs = { ok: msg||'Sincronizado con Google Sheets', syncing: msg||'Guardando…', error: msg||'Sin conexión — datos locales' };
+  dot.className = 'sync-dot ' + state;
+  label.textContent = msgs[state] || msg || '';
 }
 
-// TOAST
 function showToast(msg, isError) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -198,7 +184,38 @@ function showToast(msg, isError) {
   setTimeout(function(){ t.className = 'toast'; }, 3000);
 }
 
-// SHEET SYNC
+// CARGAR LEADS DESDE GOOGLE SHEETS
+function loadFromSheets() {
+  setSyncStatus('syncing', 'Cargando leads…');
+  fetch(SHEET_URL)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (Array.isArray(data) && data.length > 0) {
+        leads = data.map(function(r) {
+          return {
+            id: Number(r.id) || r.id,
+            name: r.name || r.nombre || '',
+            company: r.company || r.empresa || '—',
+            email: r.email || r.correo || '',
+            phone: r.phone || r.telefono || '',
+            source: r.source || r.fuente || 'email',
+            status: r.status || r.etapa || 'new',
+            notes: r.notes || r.notas || '',
+            date: r.date || r.fecha || new Date().toISOString().split('T')[0],
+          };
+        });
+        nextId = leads.length ? Math.max.apply(null, leads.map(function(l){ return Number(l.id)||0; })) + 1 : 1;
+      }
+      setSyncStatus('ok');
+      render();
+    })
+    .catch(function() {
+      setSyncStatus('error');
+      showToast('No se pudo conectar a Google Sheets', true);
+      render();
+    });
+}
+
 function syncToSheet(action, lead) {
   setSyncStatus('syncing');
   var payload = {
@@ -220,14 +237,14 @@ function syncToSheet(action, lead) {
     body: JSON.stringify(payload)
   }).then(function() {
     setSyncStatus('ok');
-    showToast(action === 'add' ? '✓ Lead guardado en Google Sheets' : action === 'delete' ? '✓ Lead eliminado' : '✓ Actualizado en Google Sheets');
+    var msgs = { add: '✓ Lead guardado en Google Sheets', delete: '✓ Lead eliminado', update: '✓ Actualizado en Google Sheets' };
+    showToast(msgs[action] || '✓ Listo');
   }).catch(function() {
     setSyncStatus('error');
-    showToast('Sin conexión — guardado solo localmente', true);
+    showToast('Error al sincronizar con Google Sheets', true);
   });
 }
 
-// ALERTS
 document.getElementById('alerts-toggle').checked = loadAlerts();
 function toggleAlerts() { saveAlerts(document.getElementById('alerts-toggle').checked); renderAlertBanner(); }
 function renderAlertBanner() {
@@ -253,11 +270,10 @@ function renderStats() {
 }
 
 function render(q) {
-  var query = (q || document.querySelector('.search-bar').value || '').toLowerCase();
-  var filtered = query ? leads.filter(function(l){ return [l.name,l.company,l.notes,l.email,l.phone].join(' ').toLowerCase().includes(query); }) : leads;
+  var query = (q !== undefined ? q : (document.querySelector('.search-bar') ? document.querySelector('.search-bar').value : '')).toLowerCase();
+  var filtered = query ? leads.filter(function(l){ return [l.name,l.company,l.notes,l.email,l.phone].join(' ').toLowerCase().indexOf(query) > -1; }) : leads;
   renderStats();
   renderAlertBanner();
-  setSyncStatus('ok');
   document.getElementById('board').innerHTML = COLS.map(function(col){
     var cards = filtered.filter(function(l){return l.status===col.id;});
     return '<div class="col '+col.cls+'">'
@@ -313,59 +329,60 @@ function saveLead() {
     date: new Date().toISOString().split('T')[0],
   };
   leads.push(lead);
-  saveLocal(leads);
   syncToSheet('add', lead);
   closeModal(); render();
 }
 
 function openDetail(id) {
-  var l = leads.find(function(x){return x.id===id;});
+  var l = leads.find(function(x){return String(x.id)===String(id);});
   if (!l) return;
   var days = daysSince(l.date);
   var stale = isStale(l);
   var src = srcInfo(l.source);
   var stageBtns = COLS.filter(function(c){return c.id!==l.status;})
-    .map(function(c){ return '<button class="stage-btn" onclick="moveLead('+id+',\''+c.id+'\')">'+c.label+' →</button>'; }).join('');
+    .map(function(c){ return '<button class="stage-btn" onclick="moveLead(\''+id+'\',\''+c.id+'\')">'+c.label+' →</button>'; }).join('');
   document.getElementById('modal-root').innerHTML =
     '<div class="overlay" onclick="if(event.target===this)closeModal()">'
     +'<div class="modal"><h2>'+l.name+'</h2>'
     +'<div class="detail-grid">'
     +'<div class="drow"><span class="dlabel">Empresa</span><span class="dval">'+l.company+'</span></div>'
-    +'<div class="drow"><span class="dlabel">Correo</span><span class="dval" style="color:var(--accent-li)">'+( l.email||'—')+'</span></div>'
+    +'<div class="drow"><span class="dlabel">Correo</span><span class="dval" style="color:var(--accent-li)">'+(l.email||'—')+'</span></div>'
     +'<div class="drow"><span class="dlabel">Teléfono</span><span class="dval">'+(l.phone||'—')+'</span></div>'
     +'<div class="drow"><span class="dlabel">Fuente</span><span class="dval">'+src.label+'</span></div>'
     +'<div class="drow"><span class="dlabel">Etapa</span><span class="dval">'+COLS.find(function(c){return c.id===l.status;}).label+'</span></div>'
     +'<div class="drow"><span class="dlabel">Último contacto</span><span class="dval">'+fmt(l.date)+' (hace '+days+'d)</span></div>'
     +(l.notes?'<div class="drow"><span class="dlabel">Notas</span><span class="dval">'+l.notes+'</span></div>':'')
     +'</div>'
-    +(stale?'<div class="follow-row">⚠️ Este lead lleva '+days+' días sin movimiento — es momento de hacer seguimiento.</div>':'')
+    +(stale?'<div class="follow-row">⚠️ Este lead lleva '+days+' días sin movimiento.</div>':'')
     +'<div style="font-size:11px;color:var(--text3);margin-top:1rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Mover a etapa</div>'
     +'<div class="stage-btns">'+stageBtns+'</div>'
     +'<div class="modal-foot" style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">'
-    +'<button class="btn btn-danger" onclick="deleteLead('+id+')">Eliminar</button>'
-    +'<button class="btn" onclick="markContacted('+id+')">Marcar contactado hoy</button>'
+    +'<button class="btn btn-danger" onclick="deleteLead(\''+id+'\')">Eliminar</button>'
+    +'<button class="btn" onclick="markContacted(\''+id+'\')">Marcar contactado hoy</button>'
     +'<button class="btn" onclick="closeModal()">Cerrar</button>'
     +'</div></div></div>';
 }
 
 function moveLead(id, status) {
-  var l = leads.find(function(x){return x.id===id;});
+  var l = leads.find(function(x){return String(x.id)===String(id);});
   if (l) { l.status=status; l.date=new Date().toISOString().split('T')[0]; }
-  saveLocal(leads); syncToSheet('update', l); closeModal(); render();
+  syncToSheet('update', l); closeModal(); render();
 }
 function markContacted(id) {
-  var l = leads.find(function(x){return x.id===id;});
+  var l = leads.find(function(x){return String(x.id)===String(id);});
   if (l) l.date=new Date().toISOString().split('T')[0];
-  saveLocal(leads); syncToSheet('update', l); closeModal(); render();
+  syncToSheet('update', l); closeModal(); render();
 }
 function deleteLead(id) {
-  var l = leads.find(function(x){return x.id===id;});
-  leads = leads.filter(function(x){return x.id!==id;});
-  saveLocal(leads); syncToSheet('delete', l); closeModal(); render();
+  var l = leads.find(function(x){return String(x.id)===String(id);});
+  leads = leads.filter(function(x){return String(x.id)!==String(id);});
+  syncToSheet('delete', l); closeModal(); render();
 }
 
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
-render();
+
+// INICIAR — cargar desde Sheets
+loadFromSheets();
 </script>
 </body>
 </html>
