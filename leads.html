@@ -51,7 +51,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .search-bar:focus{outline:none;border-color:var(--accent)}
 
 /* BOARD — 4 cols Trello */
-.board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start}
+.board{display:flex;gap:14px;align-items:start;overflow-x:auto;padding-bottom:8px}
+.board>.col{flex:1 0 260px;min-width:260px}
 .col{background:var(--surface2);border-radius:var(--r-lg);padding:12px;display:flex;flex-direction:column;gap:8px;transition:background .15s}
 .col.drag-over{background:#E4E0D8;outline:2px dashed var(--col-accent,var(--border));outline-offset:-2px}
 .col-head{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 8px;border-bottom:2px solid var(--col-accent,var(--border));margin-bottom:2px}
@@ -174,8 +175,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:var(--r);font-size:13px;opacity:0;transform:translateY(10px);transition:all .3s;z-index:200;pointer-events:none;display:flex;align-items:center;gap:8px}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.error{background:var(--accent)}
-@media(max-width:960px){.board{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}}
-@media(max-width:540px){.board{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:960px){.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:540px){.stats{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
