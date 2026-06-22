@@ -192,10 +192,6 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
       </div>
     </div>
     <div class="header-actions">
-      <div class="toggle-wrap">
-        <span>Alertas matutinas</span>
-        <label class="toggle"><input type="checkbox" id="alerts-toggle" onchange="toggleAlerts()"><span class="slider"></span></label>
-      </div>
       <button class="btn btn-primary" onclick="openAdd(null)">+ Nuevo lead</button>
     </div>
   </header>
@@ -216,16 +212,49 @@ var SHEET_URL="https://script.google.com/macros/s/AKfycbyK_LKnYGsnuTCI7HVrhKSToV
 var COUNTRY_CODES=[
   {code:"+52",flag:"🇲🇽",name:"México"},
   {code:"+1",flag:"🇺🇸",name:"USA/Canadá"},
-  {code:"+34",flag:"🇪🇸",name:"España"},
+  {code:"+501",flag:"🇧🇿",name:"Belice"},
+  {code:"+502",flag:"🇬🇹",name:"Guatemala"},
+  {code:"+503",flag:"🇸🇻",name:"El Salvador"},
+  {code:"+504",flag:"🇭🇳",name:"Honduras"},
+  {code:"+505",flag:"🇳🇮",name:"Nicaragua"},
+  {code:"+506",flag:"🇨🇷",name:"Costa Rica"},
+  {code:"+507",flag:"🇵🇦",name:"Panamá"},
+  {code:"+53",flag:"🇨🇺",name:"Cuba"},
   {code:"+57",flag:"🇨🇴",name:"Colombia"},
+  {code:"+58",flag:"🇻🇪",name:"Venezuela"},
+  {code:"+593",flag:"🇪🇨",name:"Ecuador"},
+  {code:"+591",flag:"🇧🇴",name:"Bolivia"},
+  {code:"+595",flag:"🇵🇾",name:"Paraguay"},
+  {code:"+598",flag:"🇺🇾",name:"Uruguay"},
   {code:"+54",flag:"🇦🇷",name:"Argentina"},
   {code:"+56",flag:"🇨🇱",name:"Chile"},
   {code:"+51",flag:"🇵🇪",name:"Perú"},
-  {code:"+506",flag:"🇨🇷",name:"Costa Rica"},
-  {code:"+507",flag:"🇵🇦",name:"Panamá"},
+  {code:"+55",flag:"🇧🇷",name:"Brasil"},
+  {code:"+592",flag:"🇬🇾",name:"Guyana"},
+  {code:"+597",flag:"🇸🇷",name:"Surinam"},
+  {code:"+34",flag:"🇪🇸",name:"España"},
+  {code:"+351",flag:"🇵🇹",name:"Portugal"},
   {code:"+44",flag:"🇬🇧",name:"Reino Unido"},
-  {code:"+49",flag:"🇩🇪",name:"Alemania"},
+  {code:"+353",flag:"🇮🇪",name:"Irlanda"},
   {code:"+33",flag:"🇫🇷",name:"Francia"},
+  {code:"+49",flag:"🇩🇪",name:"Alemania"},
+  {code:"+31",flag:"🇳🇱",name:"Países Bajos"},
+  {code:"+32",flag:"🇧🇪",name:"Bélgica"},
+  {code:"+352",flag:"🇱🇺",name:"Luxemburgo"},
+  {code:"+41",flag:"🇨🇭",name:"Suiza"},
+  {code:"+43",flag:"🇦🇹",name:"Austria"},
+  {code:"+39",flag:"🇮🇹",name:"Italia"},
+  {code:"+30",flag:"🇬🇷",name:"Grecia"},
+  {code:"+45",flag:"🇩🇰",name:"Dinamarca"},
+  {code:"+46",flag:"🇸🇪",name:"Suecia"},
+  {code:"+47",flag:"🇳🇴",name:"Noruega"},
+  {code:"+358",flag:"🇫🇮",name:"Finlandia"},
+  {code:"+354",flag:"🇮🇸",name:"Islandia"},
+  {code:"+48",flag:"🇵🇱",name:"Polonia"},
+  {code:"+420",flag:"🇨🇿",name:"República Checa"},
+  {code:"+36",flag:"🇭🇺",name:"Hungría"},
+  {code:"+40",flag:"🇷🇴",name:"Rumania"},
+  {code:"+7",flag:"🇷🇺",name:"Rusia"},
   {code:"+86",flag:"🇨🇳",name:"China"}
 ];
 var COLS=[{id:"new",label:"Nuevo",cls:"col-new"},{id:"contacted",label:"Contactado",cls:"col-contacted"},{id:"warm",label:"Interesado",cls:"col-warm"},{id:"close",label:"Cerrado",cls:"col-close"}];
@@ -235,8 +264,6 @@ var PLATINGS=["Cromo Hexavalente","Cromo Trivalente","Zn-Ni","Zn"];
 var FOLLOW_DAYS={new:3,contacted:5,warm:7,close:2};
 var leads=[];var nextId=1;
 function todayStr(){return new Date().toISOString().split("T")[0];}
-function loadAlerts(){return localStorage.getItem("sw_alerts")==="true";}
-function saveAlerts(v){localStorage.setItem("sw_alerts",v);}
 function daysSince(ds){if(!ds)return 0;return Math.floor((Date.now()-new Date(ds).getTime())/86400000);}
 function isStale(l){return daysSince(l.date)>=FOLLOW_DAYS[l.status];}
 function needsFollowupToday(l){if(!l.followup)return false;return l.followup<=todayStr();}
@@ -264,9 +291,7 @@ function loadFromSheets(){
   fetch(SHEET_URL).then(function(r){return r.json();}).then(function(data){if(Array.isArray(data)&&data.length>0){applyLeads(data);saveLeadsCache(data);}setSyncStatus("ok");render();}).catch(function(){setSyncStatus(cached&&cached.length>0?"ok":"error");if(!(cached&&cached.length>0))showToast("No se pudo conectar a Google Sheets",true);render();});
 }
 function syncToSheet(action,lead){setSyncStatus("syncing");var payload={action:action,id:lead.id,nombre:lead.name||"",empresa:lead.company||"",correo:lead.email||"",telefono:lead.phone||"",fuente:lead.source||"",etapa:lead.status||"",notas:lead.notes||"",fecha:lead.date||"",puesto:lead.puesto||"",ciudad:lead.ciudad||"",seguimiento:lead.followup||"",fechaContactado:lead.contactedDate||"",servicios:packServicios(lead),bitacora:packBitacora(lead),archivado:lead.archived?"TRUE":"FALSE"};fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){setSyncStatus("ok");var msgs={add:"\u2713 Lead guardado",delete:"\u2713 Lead eliminado",update:"\u2713 Actualizado"};showToast(msgs[action]||"\u2713 Listo");}).catch(function(){setSyncStatus("error");showToast("Error al sincronizar",true);});}
-document.getElementById("alerts-toggle").checked=loadAlerts();
-function toggleAlerts(){saveAlerts(document.getElementById("alerts-toggle").checked);renderAlertBanner();}
-function renderAlertBanner(){var on=loadAlerts();var banner=document.getElementById("alert-banner");if(!on){banner.classList.remove("show");return;}var stale=activeLeads().filter(function(l){return isStale(l)||needsFollowupToday(l);});if(!stale.length){banner.classList.remove("show");return;}banner.classList.add("show");document.getElementById("alert-list").innerHTML=stale.map(function(l){var reason=needsFollowupToday(l)?"seguimiento programado para hoy":daysSince(l.date)+" d\u00edas sin movimiento";var lastLog=l.log&&l.log.length?l.log[l.log.length-1]:null;return "<div class=\"alert-item\">"+l.name+" \u00b7 "+l.company+" \u2014 "+reason+"</div>"+(lastLog?"<div class=\"alert-item-log\">&#128203; \u00daltima nota: "+lastLog.text+" ("+fmtLong(lastLog.date)+" \u00b7 "+lastLog.time+")</div>":"");}).join("");}
+function renderAlertBanner(){var banner=document.getElementById("alert-banner");var stale=activeLeads().filter(function(l){return isStale(l)||needsFollowupToday(l);});if(!stale.length){banner.classList.remove("show");return;}banner.classList.add("show");document.getElementById("alert-list").innerHTML=stale.map(function(l){var reason=needsFollowupToday(l)?"seguimiento programado para hoy":daysSince(l.date)+" d\u00edas sin movimiento";var lastLog=l.log&&l.log.length?l.log[l.log.length-1]:null;return "<div class=\"alert-item\">"+l.name+" \u00b7 "+l.company+" \u2014 "+reason+"</div>"+(lastLog?"<div class=\"alert-item-log\">&#128203; \u00daltima nota: "+lastLog.text+" ("+fmtLong(lastLog.date)+" \u00b7 "+lastLog.time+")</div>":"");}).join("");}
 function renderStats(){
   var active=activeLeads();
   var total=active.length;
@@ -353,7 +378,7 @@ function openAdd(status){
     +"<div class=\"sec-title\">Datos del contacto</div>"
     +"<div class=\"field\"><label>Nombre completo</label><input id=\"f-name\" placeholder=\"Ej. Mar\u00eda L\u00f3pez\" autofocus></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Empresa</label><input id=\"f-company\" placeholder=\"Ej. Industrias SA\"></div><div class=\"field\"><label>Puesto</label><input id=\"f-puesto\" placeholder=\"Ej. Gerente de Compras\"></div></div>"
-    +"<div class=\"field-row\"><div class=\"field\"><label>Ciudad / Estado</label><input id=\"f-ciudad\" placeholder=\"Ej. Monterrey, NL\"></div><div class=\"field\"><label>Tel\u00e9fono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"max-width:108px;flex-shrink:0\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div></div>"
+    +"<div class=\"field-row\"><div class=\"field\"><label>Ciudad / Estado</label><input id=\"f-ciudad\" placeholder=\"Ej. Monterrey, NL\"></div><div class=\"field\"><label>Tel\u00e9fono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:80px;flex-shrink:0;padding:8px 2px 8px 6px\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div></div>"
     +"<div class=\"field\"><label>Correo electr\u00f3nico</label><input id=\"f-email\" type=\"email\" placeholder=\"contacto@empresa.com\"></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Fuente</label><select id=\"f-source\">"+srcOpts+"</select></div><div class=\"field\"><label>Etapa inicial</label><select id=\"f-status\">"+colOpts+"</select></div></div>"
     +"<div class=\"sec-title\">Servicio requerido</div>"
