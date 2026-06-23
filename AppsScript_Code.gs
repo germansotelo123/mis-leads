@@ -27,7 +27,8 @@ function doGet(e) {
         puesto: rows[i][9] || "", ciudad: rows[i][10] || "",
         followup: rows[i][11] || "", contactedDate: rows[i][12] || "",
         servicios: rows[i][13] || "", bitacora: rows[i][14] || "",
-        archived: String(rows[i][17] || "").toUpperCase() === "TRUE"
+        archived: String(rows[i][17] || "").toUpperCase() === "TRUE",
+        pais: rows[i][18] || "México"
       });
     }
   }
@@ -45,7 +46,7 @@ function doPost(e) {
       data.puesto || "", data.ciudad || "", data.seguimiento || "",
       data.fechaContactado || "", data.servicios || "", data.bitacora || "",
       summarizeServicios(data.servicios), summarizeBitacora(data.bitacora),
-      data.archivado || "FALSE"
+      data.archivado || "FALSE", data.pais || "México"
     ]);
   }
   if (data.action === 'delete') {
@@ -58,12 +59,12 @@ function doPost(e) {
     var rows = sheet.getDataRange().getValues();
     for (var i = 1; i < rows.length; i++) {
       if (String(rows[i][0]) === String(data.id)) {
-        sheet.getRange(i + 1, 2, 1, 17).setValues([[
+        sheet.getRange(i + 1, 2, 1, 18).setValues([[
           data.nombre, data.empresa, data.correo, data.telefono, data.fuente,
           data.etapa, data.notas, data.fecha, data.puesto || "", data.ciudad || "",
           data.seguimiento || "", data.fechaContactado || "", data.servicios || "", data.bitacora || "",
           summarizeServicios(data.servicios), summarizeBitacora(data.bitacora),
-          data.archivado || "FALSE"
+          data.archivado || "FALSE", data.pais || "México"
         ]]);
         break;
       }
@@ -75,7 +76,7 @@ function doPost(e) {
 
 // Ejecuta esta función UNA SOLA VEZ desde el editor de Apps Script (botón Ejecutar)
 // para migrar los leads viejos que tenían los datos extra escondidos en Notas,
-// y para llenar las columnas de texto legible (P y Q) en los leads ya existentes.
+// y para llenar las columnas de texto legible (P y Q) y País en los leads ya existentes.
 function migrarNotasViejas() {
   var sheet = SpreadsheetApp.openById('1H7wlH_q77FMRI1krbkJUSOqzDJqYGi8RB8qZ5PEr0vU').getActiveSheet();
   var rows = sheet.getDataRange().getValues();
@@ -106,6 +107,7 @@ function migrarNotasViejas() {
       }
     }
     if (!rows[i][17]) sheet.getRange(i + 1, 18).setValue("FALSE");
+    if (!rows[i][18]) sheet.getRange(i + 1, 19).setValue("México");
     sheet.getRange(i + 1, 14, 1, 4).setValues([[
       servicios, bitacora, summarizeServicios(servicios), summarizeBitacora(bitacora)
     ]]);
