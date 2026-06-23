@@ -337,7 +337,7 @@ function showStatList(type){
   else if(type==="followup")filtered=active.filter(function(l){return needsFollowupToday(l)||isStale(l);});
   else if(type==="contacted")filtered=active.filter(wasContactedToday);
   else filtered=active.filter(function(l){return l.status==="close";});
-  var items=filtered.map(function(l){var src=srcInfo(l.source);return "<div class=\"lead-list-item\" onclick=\"closeModal();openDetail("+l.id+")\"><div class=\"lli-name\">"+l.name+"</div><div class=\"lli-meta\">"+l.company+(l.puesto?" \u00b7 "+l.puesto:"")+" \u00b7 <span class=\"src "+src.cls+"\">"+src.label+"</span></div></div>";}).join("")||"<div class=\"log-empty\">No hay contactos en esta categor\u00eda</div>";
+  var items=filtered.map(function(l){var meta=[l.company,l.puesto,l.ciudad].filter(function(v){return v&&v!=="\u2014";}).join(" \u00b7 ");return "<div class=\"lead-list-item\" onclick=\"closeModal();openDetail("+l.id+")\"><div class=\"lli-name\">"+l.name+"</div><div class=\"lli-meta\">"+meta+"</div></div>";}).join("")||"<div class=\"log-empty\">No hay contactos en esta categor\u00eda</div>";
   document.getElementById("modal-root").innerHTML="<div class=\"overlay\" onclick=\"if(event.target===this)closeModal()\"><div class=\"modal modal-wide\"><h2>"+titles[type]+"</h2><div class=\"lead-list\">"+items+"</div><div class=\"modal-foot\"><button class=\"btn\" onclick=\"closeModal()\">Cerrar</button></div></div></div>";
 }
 function render(q){
@@ -474,9 +474,11 @@ function openDetail(id){
     +(l.followup?"<div class=\"drow\"><span class=\"dlabel\">&#128197; Seguimiento</span><span class=\"dval "+fu2.cls+"\">"+fu2.text+"</span></div>":"")
     +(l.notes?"<div class=\"drow\"><span class=\"dlabel\">&#128221; Notas</span><span class=\"dval\">"+l.notes+"</span></div>":"")
     +"</div>"
-    +((stale||fu)?"<div class=\"follow-row\">\u26a0\ufe0f "+(fu?"Seguimiento programado para hoy":"Este lead lleva "+days+" d\u00edas sin movimiento")+"</div>":"")
+    +((stale||fu)?"<div class=\"follow-row\">\u26a0\ufe0f "+(fu?"Seguimiento: "+fu2.text:"Este lead lleva "+days+" d\u00edas sin movimiento")+"</div>":"")
     +"<div style=\"font-size:11px;color:var(--text3);margin-top:1rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;\">Mover a etapa</div>"
     +"<div class=\"stage-btns\">"+stageBtns+"</div>"
+    +"<div style=\"font-size:11px;color:var(--text3);margin-top:1rem;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;\">Próximo seguimiento</div>"
+    +"<div style=\"display:flex;gap:8px\"><input id=\"quick-followup\" type=\"date\" value=\""+dateOnly(l.followup)+"\" style=\"flex:1\"><button class=\"btn btn-primary btn-sm\" onclick=\"setFollowup('"+l.id+"')\">Guardar</button></div>"
     +"<div class=\"log-section\"><div class=\"log-title\">&#128203; L\u00ednea de tiempo</div>"
     +"<div class=\"log-add\"><input id=\"log-input\" placeholder=\"Escribe una nota de seguimiento\u2026\" onkeydown=\"if(event.key==='Enter')addLog('"+l.id+"')\"><button class=\"btn btn-primary btn-sm\" onclick=\"addLog('"+l.id+"')\">+ Agregar</button></div>"
     +"<div class=\"log-list\" id=\"log-list\">"+logHtml+"</div></div>"
@@ -508,6 +510,16 @@ function addLog(id){
   syncToSheet("update",l);input.value="";
   document.getElementById("log-list").innerHTML=renderTimeline(l.log);
   showToast("Nota guardada en la l\u00ednea de tiempo");
+}
+function setFollowup(id){
+  var l=leads.find(function(x){return String(x.id)===String(id);});if(!l)return;
+  var val=document.getElementById("quick-followup").value;
+  l.followup=val;
+  if(!l.log)l.log=[];
+  var now=new Date();var hh=String(now.getHours()).padStart(2,"0");var mm=String(now.getMinutes()).padStart(2,"0");
+  l.log.push({date:todayStr(),time:hh+":"+mm,text:val?"Próximo seguimiento programado para "+fmt(val)+".":"Fecha de seguimiento eliminada.",type:"note"});
+  syncToSheet("update",l);openDetail(l.id);render();
+  showToast(val?"Seguimiento programado":"Seguimiento eliminado");
 }
 function moveLead(id,status,fromDrag){var l=leads.find(function(x){return String(x.id)===String(id);});if(!l||l.status===status)return;var now=new Date();var hh=String(now.getHours()).padStart(2,"0");var mm=String(now.getMinutes()).padStart(2,"0");if(!l.log)l.log=[];l.log.push({date:todayStr(),time:hh+":"+mm,text:"Movido a "+COLS.find(function(c){return c.id===status;}).label,type:"stage"});l.status=status;l.date=todayStr();syncToSheet("update",l);if(!fromDrag)closeModal();render();}
 function markContacted(id){
