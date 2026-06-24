@@ -263,7 +263,7 @@ var COUNTRY_CODES=[
   {code:"+7",flag:"🇷🇺",name:"Rusia"},
   {code:"+86",flag:"🇨🇳",name:"China"}
 ];
-var COLS=[{id:"new",label:"Nuevo",cls:"col-new"},{id:"contacted",label:"Contactado",cls:"col-contacted"},{id:"warm",label:"Interesado",cls:"col-warm"},{id:"close",label:"Cerrado",cls:"col-close"}];
+var COLS=[{id:"new",label:"Enviado",cls:"col-new"},{id:"contacted",label:"Platicando",cls:"col-contacted"},{id:"warm",label:"Interesado",cls:"col-warm"},{id:"close",label:"Cerrado",cls:"col-close"}];
 var SOURCES=[{id:"linkedin",label:"LinkedIn",cls:"src-linkedin"},{id:"email",label:"Correo",cls:"src-email"},{id:"exposicion",label:"Exposici\u00f3n",cls:"src-exposicion"},{id:"llamada",label:"Llamada",cls:"src-llamada"},{id:"referido",label:"Referido",cls:"src-referido"},{id:"web",label:"P\u00e1gina web",cls:"src-web"}];
 var BASES=["Acero","Aluminio","Zinc"];
 var PLATINGS=["Cromo Hexavalente","Cromo Trivalente","Zn-Ni","Zn"];
@@ -289,7 +289,7 @@ function packServicios(lead){return JSON.stringify({svc_pulido:lead.svc_pulido||
 function unpackServicios(str){try{return JSON.parse(str||"{}")||{};}catch(e){return {};}}
 function packBitacora(lead){return JSON.stringify(lead.log||[]);}
 function unpackBitacora(str){try{var a=JSON.parse(str||"[]");return Array.isArray(a)?a:[];}catch(e){return [];}}
-function parseRow(r){var svc=unpackServicios(r.servicios);return{id:Number(r.id)||r.id,name:r.name||r.nombre||"",company:r.company||r.empresa||"\u2014",email:r.email||r.correo||"",phone:sanitizePhone(r.phone||r.telefono||""),puesto:r.puesto||"",ciudad:r.ciudad||"",pais:r.pais||"México",source:r.source||r.fuente||"email",status:r.status||r.etapa||"new",notes:r.notes||r.notas||"",date:r.date||r.fecha||todayStr(),followup:r.followup||"",contactedDate:r.contactedDate||"",log:unpackBitacora(r.bitacora),archived:r.archived===true||r.archived==="TRUE"||r.archived==="true",svc_pulido:svc.svc_pulido||false,svc_pulido_base:svc.svc_pulido_base||"",svc_platinado:svc.svc_platinado||false,svc_platinado_tipo:svc.svc_platinado_tipo||"",svc_platinado_base:svc.svc_platinado_base||""};}
+function parseRow(r){var svc=unpackServicios(r.servicios);return{id:Number(r.id)||r.id,name:r.name||r.nombre||"",company:r.company||r.empresa||"\u2014",email:r.email||r.correo||"",phone:sanitizePhone(r.phone||r.telefono||""),puesto:r.puesto||"",ciudad:r.ciudad||"",pais:r.pais||"México",source:r.source||r.fuente||"email",tipo:r.tipo||"outbound",status:r.status||r.etapa||"new",notes:r.notes||r.notas||"",date:r.date||r.fecha||todayStr(),followup:r.followup||"",contactedDate:r.contactedDate||"",log:unpackBitacora(r.bitacora),archived:r.archived===true||r.archived==="TRUE"||r.archived==="true",svc_pulido:svc.svc_pulido||false,svc_pulido_base:svc.svc_pulido_base||"",svc_platinado:svc.svc_platinado||false,svc_platinado_tipo:svc.svc_platinado_tipo||"",svc_platinado_base:svc.svc_platinado_base||""};}
 var LEADS_CACHE_KEY="sw_leads_cache";
 function loadLeadsCache(){try{var raw=localStorage.getItem(LEADS_CACHE_KEY);if(!raw)return null;var data=JSON.parse(raw);return Array.isArray(data)?data:null;}catch(e){return null;}}
 function saveLeadsCache(data){try{localStorage.setItem(LEADS_CACHE_KEY,JSON.stringify(data));}catch(e){}}
@@ -300,11 +300,11 @@ function loadFromSheets(){
   else{setSyncStatus("syncing","Cargando leads\u2026");}
   fetch(SHEET_URL).then(function(r){return r.json();}).then(function(data){if(Array.isArray(data)&&data.length>0){applyLeads(data);saveLeadsCache(data);}setSyncStatus("ok");render();}).catch(function(){setSyncStatus(cached&&cached.length>0?"ok":"error");if(!(cached&&cached.length>0))showToast("No se pudo conectar a Google Sheets",true);render();});
 }
-function syncToSheet(action,lead){setSyncStatus("syncing");var payload={action:action,id:lead.id,nombre:lead.name||"",empresa:lead.company||"",correo:lead.email||"",telefono:lead.phone||"",fuente:lead.source||"",etapa:lead.status||"",notas:lead.notes||"",fecha:lead.date||"",puesto:lead.puesto||"",ciudad:lead.ciudad||"",pais:lead.pais||"México",seguimiento:lead.followup||"",fechaContactado:lead.contactedDate||"",servicios:packServicios(lead),bitacora:packBitacora(lead),archivado:lead.archived?"TRUE":"FALSE"};fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){setSyncStatus("ok");var msgs={add:"\u2713 Lead guardado",delete:"\u2713 Lead eliminado",update:"\u2713 Actualizado"};showToast(msgs[action]||"\u2713 Listo");}).catch(function(){setSyncStatus("error");showToast("Error al sincronizar",true);});}
+function syncToSheet(action,lead){setSyncStatus("syncing");var payload={action:action,id:lead.id,nombre:lead.name||"",empresa:lead.company||"",correo:lead.email||"",telefono:lead.phone||"",fuente:lead.source||"",etapa:lead.status||"",notas:lead.notes||"",fecha:lead.date||"",puesto:lead.puesto||"",ciudad:lead.ciudad||"",pais:lead.pais||"México",tipo:lead.tipo||"outbound",seguimiento:lead.followup||"",fechaContactado:lead.contactedDate||"",servicios:packServicios(lead),bitacora:packBitacora(lead),archivado:lead.archived?"TRUE":"FALSE"};fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){setSyncStatus("ok");var msgs={add:"\u2713 Lead guardado",delete:"\u2713 Lead eliminado",update:"\u2713 Actualizado"};showToast(msgs[action]||"\u2713 Listo");}).catch(function(){setSyncStatus("error");showToast("Error al sincronizar",true);});}
 function renderAlertBanner(){var banner=document.getElementById("alert-banner");var stale=activeLeads().filter(function(l){return isStale(l)||needsFollowupToday(l);});if(!stale.length){banner.classList.remove("show");return;}banner.classList.add("show");document.getElementById("alert-list").innerHTML=stale.map(function(l){var reason=needsFollowupToday(l)?"seguimiento programado para hoy":daysSince(l.date)+" d\u00edas sin movimiento";var lastLog=l.log&&l.log.length?l.log[l.log.length-1]:null;return "<div class=\"alert-item\">"+l.name+" \u00b7 "+l.company+" \u2014 "+reason+"</div>"+(lastLog?"<div class=\"alert-item-log\">&#128203; \u00daltima nota: "+lastLog.text+" ("+fmtLong(lastLog.date)+" \u00b7 "+lastLog.time+")</div>":"");}).join("");}
 function renderStats(){
   var active=activeLeads();
-  var total=active.length;
+  var total=leads.length;
   var followToday=active.filter(function(l){return needsFollowupToday(l)||isStale(l);}).length;
   var contactedToday=active.filter(wasContactedToday).length;
   var closed=active.filter(function(l){return l.status==="close";}).length;
@@ -333,11 +333,11 @@ function showStatList(type){
   var titles={total:"Todos los contactos",followup:"Seguimiento pendiente hoy",contacted:"Atendidos hoy",closed:"Leads cerrados"};
   var active=activeLeads();
   var filtered;
-  if(type==="total")filtered=active;
+  if(type==="total")filtered=leads;
   else if(type==="followup")filtered=active.filter(function(l){return needsFollowupToday(l)||isStale(l);});
   else if(type==="contacted")filtered=active.filter(wasContactedToday);
   else filtered=active.filter(function(l){return l.status==="close";});
-  var items=filtered.map(function(l){var meta=[l.company,l.puesto,l.ciudad].filter(function(v){return v&&v!=="\u2014";}).join(" \u00b7 ");return "<div class=\"lead-list-item\" onclick=\"closeModal();openDetail("+l.id+")\"><div class=\"lli-name\">"+l.name+"</div><div class=\"lli-meta\">"+meta+"</div></div>";}).join("")||"<div class=\"log-empty\">No hay contactos en esta categor\u00eda</div>";
+  var items=filtered.map(function(l){var meta=[l.company,l.puesto,l.ciudad].filter(function(v){return v&&v!=="\u2014";}).join(" \u00b7 ");if(l.archived)meta+=(meta?" \u00b7 ":"")+"sin seguimiento";return "<div class=\"lead-list-item\" onclick=\"closeModal();openDetail("+l.id+")\"><div class=\"lli-name\">"+l.name+"</div><div class=\"lli-meta\">"+meta+"</div></div>";}).join("")||"<div class=\"log-empty\">No hay contactos en esta categor\u00eda</div>";
   document.getElementById("modal-root").innerHTML="<div class=\"overlay\" onclick=\"if(event.target===this)closeModal()\"><div class=\"modal modal-wide\"><h2>"+titles[type]+"</h2><div class=\"lead-list\">"+items+"</div><div class=\"modal-foot\"><button class=\"btn\" onclick=\"closeModal()\">Cerrar</button></div></div></div>";
 }
 function render(q){
@@ -355,7 +355,7 @@ function render(q){
         +"<div class=\"card-name\">"+l.name+"</div>"
         +"<div class=\"card-co\">"+l.company+"</div>"
         +(l.puesto?"<div class=\"card-puesto\">"+l.puesto+(l.ciudad?" &middot; "+l.ciudad:"")+"</div>":"")
-        +"<div class=\"card-foot\"><div class=\"card-tags\"><span class=\"src "+src.cls+"\">"+src.label+"</span>"+(svc?"<span class=\"tag-svc\">"+svc+"</span>":"")+"</div></div>"
+        +(svc?"<div class=\"card-foot\"><div class=\"card-tags\"><span class=\"tag-svc\">"+svc+"</span></div></div>":"")
         +(wasContactedToday(l)?"<div class=\"card-followup\" style=\"color:var(--green)\">&#10003; Atendido hoy</div>":"")
         +((stale||fu)?"<div class=\"card-alert\">\u26a0\ufe0f Necesita seguimiento</div>":(l.followup?"<div class=\"card-followup\">&#128197; Seguimiento: "+fmt(l.followup)+"</div>":""))
         +"</div>";
@@ -389,6 +389,7 @@ function openAdd(status){
     +"<div class=\"field-row\"><div class=\"field\"><label>Ciudad / Estado</label><input id=\"f-ciudad\" placeholder=\"Ej. Piedras Negras, Coah.\"></div><div class=\"field\"><label>Pa\u00eds</label><select id=\"f-pais\">"+paisOpts+"</select></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Tel\u00e9fono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:80px;flex-shrink:0;padding:8px 2px 8px 6px\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div><div class=\"field\"><label>Correo electr\u00f3nico</label><input id=\"f-email\" type=\"email\" placeholder=\"contacto@empresa.com\"></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Fuente</label><select id=\"f-source\">"+srcOpts+"</select></div><div class=\"field\"><label>Etapa inicial</label><select id=\"f-status\">"+colOpts+"</select></div></div>"
+    +"<div class=\"field\"><label>Tipo de contacto</label><select id=\"f-tipo\"><option value=\"inbound\">Inbound (nos contactó)</option><option value=\"outbound\">Outbound (lo contactamos)</option></select></div>"
     +"<div class=\"sec-title\">Servicio requerido</div>"
     +"<div class=\"svc-group\">"
     +"<div class=\"svc-item\" id=\"svc-item-pulido\"><div class=\"svc-check-row\" onclick=\"toggleSvc('pulido')\"><input type=\"checkbox\" id=\"svc-pulido\" onclick=\"event.stopPropagation();toggleSvc('pulido')\"><span class=\"svc-label\">Pulido</span></div><div class=\"svc-sub\" id=\"svc-sub-pulido\"><label>Base del material</label><select id=\"svc-pulido-base\">"+baseOpts+"</select></div></div>"
@@ -407,7 +408,7 @@ function saveLead(){
   var platinado=document.getElementById("svc-platinado").checked;
   var phoneCode=document.getElementById("f-phone-code").value;var phoneNum=document.getElementById("f-phone-num").value.trim();
   var now=new Date();var hh=String(now.getHours()).padStart(2,"0");var mm=String(now.getMinutes()).padStart(2,"0");
-  var lead={id:nextId++,name:name,company:document.getElementById("f-company").value.trim()||"\u2014",puesto:document.getElementById("f-puesto").value.trim(),ciudad:document.getElementById("f-ciudad").value.trim(),pais:document.getElementById("f-pais").value,email:document.getElementById("f-email").value.trim(),phone:phoneNum?phoneCode+" "+phoneNum:"",source:document.getElementById("f-source").value,status:document.getElementById("f-status").value,notes:document.getElementById("f-notes").value.trim(),date:todayStr(),followup:document.getElementById("f-followup").value,contactedDate:"",log:[{date:todayStr(),time:hh+":"+mm,text:"Lead creado",type:"create"}],archived:false,svc_pulido:pulido,svc_pulido_base:pulido?document.getElementById("svc-pulido-base").value:"",svc_platinado:platinado,svc_platinado_tipo:platinado?document.getElementById("svc-platinado-tipo").value:"",svc_platinado_base:platinado?document.getElementById("svc-platinado-base").value:""};
+  var lead={id:nextId++,name:name,company:document.getElementById("f-company").value.trim()||"\u2014",puesto:document.getElementById("f-puesto").value.trim(),ciudad:document.getElementById("f-ciudad").value.trim(),pais:document.getElementById("f-pais").value,email:document.getElementById("f-email").value.trim(),phone:phoneNum?phoneCode+" "+phoneNum:"",source:document.getElementById("f-source").value,tipo:document.getElementById("f-tipo").value,status:document.getElementById("f-status").value,notes:document.getElementById("f-notes").value.trim(),date:todayStr(),followup:document.getElementById("f-followup").value,contactedDate:"",log:[{date:todayStr(),time:hh+":"+mm,text:"Lead creado",type:"create"}],archived:false,svc_pulido:pulido,svc_pulido_base:pulido?document.getElementById("svc-pulido-base").value:"",svc_platinado:platinado,svc_platinado_tipo:platinado?document.getElementById("svc-platinado-tipo").value:"",svc_platinado_base:platinado?document.getElementById("svc-platinado-base").value:""};
   leads.push(lead);syncToSheet("add",lead);closeModal();render();
 }
 function openEdit(id){
@@ -425,7 +426,7 @@ function openEdit(id){
     +"<div class=\"field-row\"><div class=\"field\"><label>Empresa</label><input id=\"f-company\" value=\""+(l.company==="—"?"":l.company)+"\"></div><div class=\"field\"><label>Puesto</label><input id=\"f-puesto\" value=\""+l.puesto+"\"></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Ciudad / Estado</label><input id=\"f-ciudad\" value=\""+l.ciudad+"\" placeholder=\"Ej. Piedras Negras, Coah.\"></div><div class=\"field\"><label>País</label><select id=\"f-pais\">"+paisOpts+"</select></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Teléfono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:80px;flex-shrink:0;padding:8px 2px 8px 6px\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" value=\""+split.num+"\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div><div class=\"field\"><label>Correo electrónico</label><input id=\"f-email\" type=\"email\" value=\""+l.email+"\"></div></div>"
-    +"<div class=\"field\"><label>Fuente</label><select id=\"f-source\">"+srcOpts+"</select></div>"
+    +"<div class=\"field-row\"><div class=\"field\"><label>Fuente</label><select id=\"f-source\">"+srcOpts+"</select></div><div class=\"field\"><label>Tipo de contacto</label><select id=\"f-tipo\"><option value=\"inbound\""+(l.tipo==="inbound"?" selected":"")+">Inbound (nos contactó)</option><option value=\"outbound\""+(l.tipo==="outbound"?" selected":"")+">Outbound (lo contactamos)</option></select></div></div>"
     +"<div class=\"sec-title\">Servicio requerido</div>"
     +"<div class=\"svc-group\">"
     +"<div class=\"svc-item"+(l.svc_pulido?" active":"")+"\" id=\"svc-item-pulido\"><div class=\"svc-check-row\" onclick=\"toggleSvc('pulido')\"><input type=\"checkbox\" id=\"svc-pulido\""+(l.svc_pulido?" checked":"")+" onclick=\"event.stopPropagation();toggleSvc('pulido')\"><span class=\"svc-label\">Pulido</span></div><div class=\"svc-sub"+(l.svc_pulido?" show":"")+"\" id=\"svc-sub-pulido\"><label>Base del material</label><select id=\"svc-pulido-base\">"+baseOpts(l.svc_pulido_base)+"</select></div></div>"
@@ -444,7 +445,7 @@ function saveEditLead(id){
   var pulido=document.getElementById("svc-pulido").checked;
   var platinado=document.getElementById("svc-platinado").checked;
   var phoneCode=document.getElementById("f-phone-code").value;var phoneNum=document.getElementById("f-phone-num").value.trim();
-  l.name=name;l.company=document.getElementById("f-company").value.trim()||"—";l.puesto=document.getElementById("f-puesto").value.trim();l.ciudad=document.getElementById("f-ciudad").value.trim();l.pais=document.getElementById("f-pais").value;l.email=document.getElementById("f-email").value.trim();l.phone=phoneNum?phoneCode+" "+phoneNum:"";l.source=document.getElementById("f-source").value;l.followup=document.getElementById("f-followup").value;l.notes=document.getElementById("f-notes").value.trim();l.svc_pulido=pulido;l.svc_pulido_base=pulido?document.getElementById("svc-pulido-base").value:"";l.svc_platinado=platinado;l.svc_platinado_tipo=platinado?document.getElementById("svc-platinado-tipo").value:"";l.svc_platinado_base=platinado?document.getElementById("svc-platinado-base").value:"";
+  l.name=name;l.company=document.getElementById("f-company").value.trim()||"—";l.puesto=document.getElementById("f-puesto").value.trim();l.ciudad=document.getElementById("f-ciudad").value.trim();l.pais=document.getElementById("f-pais").value;l.email=document.getElementById("f-email").value.trim();l.phone=phoneNum?phoneCode+" "+phoneNum:"";l.source=document.getElementById("f-source").value;l.tipo=document.getElementById("f-tipo").value;l.followup=document.getElementById("f-followup").value;l.notes=document.getElementById("f-notes").value.trim();l.svc_pulido=pulido;l.svc_pulido_base=pulido?document.getElementById("svc-pulido-base").value:"";l.svc_platinado=platinado;l.svc_platinado_tipo=platinado?document.getElementById("svc-platinado-tipo").value:"";l.svc_platinado_base=platinado?document.getElementById("svc-platinado-base").value:"";
   if(!l.log)l.log=[];
   var now=new Date();var hh=String(now.getHours()).padStart(2,"0");var mm=String(now.getMinutes()).padStart(2,"0");
   l.log.push({date:todayStr(),time:hh+":"+mm,text:"Datos del contacto editados.",type:"note"});
