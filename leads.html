@@ -217,7 +217,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 var SHEET_URL="https://script.google.com/macros/s/AKfycbyK_LKnYGsnuTCI7HVrhKSToV7tmnqGPVN9cCWYWsbIxnxCXc2I3f2ORd-Wa-1buNE7/exec";
 var COUNTRY_CODES=[
   {code:"+52",flag:"🇲🇽",name:"México"},
-  {code:"+1",flag:"🇺🇸",name:"USA/Canadá"},
+  {code:"+1",flag:"🇺🇸",name:"Estados Unidos"},
+  {code:"+1",flag:"🇨🇦",name:"Canadá"},
   {code:"+501",flag:"🇧🇿",name:"Belice"},
   {code:"+502",flag:"🇬🇹",name:"Guatemala"},
   {code:"+503",flag:"🇸🇻",name:"El Salvador"},
@@ -263,7 +264,8 @@ var COUNTRY_CODES=[
   {code:"+7",flag:"🇷🇺",name:"Rusia"},
   {code:"+86",flag:"🇨🇳",name:"China"}
 ];
-var COLS=[{id:"new",label:"Enviado",cls:"col-new"},{id:"contacted",label:"Platicando",cls:"col-contacted"},{id:"warm",label:"Interesado",cls:"col-warm"},{id:"close",label:"Cerrado",cls:"col-close"}];
+var COLS=[{id:"new",label:"Enviado",cls:"col-new"},{id:"contacted",label:"Platicando",cls:"col-contacted"},{id:"warm",label:"Proyecto",cls:"col-warm"},{id:"close",label:"Cerrado",cls:"col-close"}];
+function orderedCountries(){var pinned=["México","Estados Unidos","Canadá"];var pinnedList=pinned.map(function(n){return COUNTRY_CODES.find(function(c){return c.name===n;});}).filter(Boolean);var rest=COUNTRY_CODES.filter(function(c){return pinned.indexOf(c.name)===-1;}).sort(function(a,b){return a.name.localeCompare(b.name,"es");});return pinnedList.concat(rest);}
 var SOURCES=[{id:"linkedin",label:"LinkedIn",cls:"src-linkedin"},{id:"email",label:"Correo",cls:"src-email"},{id:"exposicion",label:"Exposici\u00f3n",cls:"src-exposicion"},{id:"llamada",label:"Llamada",cls:"src-llamada"},{id:"referido",label:"Referido",cls:"src-referido"},{id:"web",label:"P\u00e1gina web",cls:"src-web"}];
 var BASES=["Acero","Aluminio","Zinc"];
 var PLATINGS=["Cromo Hexavalente","Cromo Trivalente","Zn-Ni","Zn"];
@@ -389,8 +391,8 @@ function openAdd(status){
   var srcOpts=SOURCES.map(function(s){return "<option value=\""+s.id+"\">"+s.label+"</option>";}).join("");
   var baseOpts=BASES.map(function(b){return "<option value=\""+b+"\">"+b+"</option>";}).join("");
   var platOpts=PLATINGS.map(function(p){return "<option value=\""+p+"\">"+p+"</option>";}).join("");
-  var ccOpts=COUNTRY_CODES.map(function(c){return "<option value=\""+c.code+"\""+(c.code==="+52"?" selected":"")+">"+c.flag+" "+c.code+"</option>";}).join("");
-  var paisOpts=COUNTRY_CODES.map(function(c){return "<option value=\""+c.name+"\""+(c.name==="México"?" selected":"")+">"+c.flag+" "+c.name+"</option>";}).join("");
+  var ccOpts=orderedCountries().map(function(c){return "<option value=\""+c.code+"\""+(c.code==="+52"?" selected":"")+">"+c.name+" "+c.flag+" "+c.code+"</option>";}).join("");
+  var paisOpts=orderedCountries().map(function(c){return "<option value=\""+c.name+"\""+(c.name==="México"?" selected":"")+">"+c.flag+" "+c.name+"</option>";}).join("");
   var today=todayStr();
   document.getElementById("modal-root").innerHTML=
     "<div class=\"overlay\" onclick=\"if(event.target===this)closeModal()\"><div class=\"modal\"><h2>Nuevo lead</h2>"
@@ -398,7 +400,7 @@ function openAdd(status){
     +"<div class=\"field\"><label>Nombre completo</label><input id=\"f-name\" placeholder=\"Ej. Mar\u00eda L\u00f3pez\" autofocus></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Empresa</label><input id=\"f-company\" placeholder=\"Ej. Industrias SA\"></div><div class=\"field\"><label>Puesto</label><input id=\"f-puesto\" placeholder=\"Ej. Gerente de Compras\"></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Ciudad / Estado</label><input id=\"f-ciudad\" placeholder=\"Ej. Piedras Negras, Coah.\"></div><div class=\"field\"><label>Pa\u00eds</label><select id=\"f-pais\">"+paisOpts+"</select></div></div>"
-    +"<div class=\"field-row\"><div class=\"field\"><label>Tel\u00e9fono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:80px;flex-shrink:0;padding:8px 2px 8px 6px\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div><div class=\"field\"><label>Correo electr\u00f3nico</label><input id=\"f-email\" type=\"email\" placeholder=\"contacto@empresa.com\"></div></div>"
+    +"<div class=\"field-row\"><div class=\"field\"><label>Tel\u00e9fono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:170px;flex-shrink:0;padding:8px 6px;text-overflow:ellipsis\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div><div class=\"field\"><label>Correo electr\u00f3nico</label><input id=\"f-email\" type=\"email\" placeholder=\"contacto@empresa.com\"></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Fuente</label><select id=\"f-source\">"+srcOpts+"</select></div><div class=\"field\"><label>Etapa inicial</label><select id=\"f-status\">"+colOpts+"</select></div></div>"
     +"<div class=\"field\"><label>Tipo de contacto</label><select id=\"f-tipo\"><option value=\"inbound\">Inbound (nos contactó)</option><option value=\"outbound\">Outbound (lo contactamos)</option></select></div>"
     +"<div class=\"sec-title\">Servicio requerido</div>"
@@ -428,15 +430,15 @@ function openEdit(id){
   var baseOpts=function(sel){return BASES.map(function(b){return "<option value=\""+b+"\""+(b===sel?" selected":"")+">"+b+"</option>";}).join("");};
   var platOpts=PLATINGS.map(function(p){return "<option value=\""+p+"\""+(p===l.svc_platinado_tipo?" selected":"")+">"+p+"</option>";}).join("");
   var split=splitPhone(l.phone);
-  var ccOpts=COUNTRY_CODES.map(function(c){return "<option value=\""+c.code+"\""+(c.code===split.code?" selected":"")+">"+c.flag+" "+c.code+"</option>";}).join("");
-  var paisOpts=COUNTRY_CODES.map(function(c){return "<option value=\""+c.name+"\""+(c.name===(l.pais||"México")?" selected":"")+">"+c.flag+" "+c.name+"</option>";}).join("");
+  var ccOpts=orderedCountries().map(function(c){return "<option value=\""+c.code+"\""+(c.code===split.code?" selected":"")+">"+c.name+" "+c.flag+" "+c.code+"</option>";}).join("");
+  var paisOpts=orderedCountries().map(function(c){return "<option value=\""+c.name+"\""+(c.name===(l.pais||"México")?" selected":"")+">"+c.flag+" "+c.name+"</option>";}).join("");
   document.getElementById("modal-root").innerHTML=
     "<div class=\"overlay\" onclick=\"if(event.target===this)closeModal()\"><div class=\"modal\"><h2>Editar lead</h2>"
     +"<div class=\"sec-title\">Datos del contacto</div>"
     +"<div class=\"field\"><label>Nombre completo</label><input id=\"f-name\" value=\""+l.name+"\" autofocus></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Empresa</label><input id=\"f-company\" value=\""+(l.company==="—"?"":l.company)+"\"></div><div class=\"field\"><label>Puesto</label><input id=\"f-puesto\" value=\""+l.puesto+"\"></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Ciudad / Estado</label><input id=\"f-ciudad\" value=\""+l.ciudad+"\" placeholder=\"Ej. Piedras Negras, Coah.\"></div><div class=\"field\"><label>País</label><select id=\"f-pais\">"+paisOpts+"</select></div></div>"
-    +"<div class=\"field-row\"><div class=\"field\"><label>Teléfono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:80px;flex-shrink:0;padding:8px 2px 8px 6px\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" value=\""+split.num+"\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div><div class=\"field\"><label>Correo electrónico</label><input id=\"f-email\" type=\"email\" value=\""+l.email+"\"></div></div>"
+    +"<div class=\"field-row\"><div class=\"field\"><label>Teléfono</label><div style=\"display:flex;gap:6px\"><select id=\"f-phone-code\" style=\"width:170px;flex-shrink:0;padding:8px 6px;text-overflow:ellipsis\">"+ccOpts+"</select><input id=\"f-phone-num\" type=\"tel\" value=\""+split.num+"\" placeholder=\"81 1234 5678\" style=\"flex:1\"></div></div><div class=\"field\"><label>Correo electrónico</label><input id=\"f-email\" type=\"email\" value=\""+l.email+"\"></div></div>"
     +"<div class=\"field-row\"><div class=\"field\"><label>Fuente</label><select id=\"f-source\">"+srcOpts+"</select></div><div class=\"field\"><label>Tipo de contacto</label><select id=\"f-tipo\"><option value=\"inbound\""+(l.tipo==="inbound"?" selected":"")+">Inbound (nos contactó)</option><option value=\"outbound\""+(l.tipo==="outbound"?" selected":"")+">Outbound (lo contactamos)</option></select></div></div>"
     +"<div class=\"sec-title\">Servicio requerido</div>"
     +"<div class=\"svc-group\">"
