@@ -329,16 +329,27 @@ function renderStats(){
     +"<div class=\"stat-l\">Cerrados</div>"
     +"<div class=\"stat-hint\">&#8594; Ver listado</div></div>";
 }
+var statListType=null;
+function statListSource(type){
+  var active=activeLeads();
+  if(type==="total")return leads;
+  if(type==="followup")return active.filter(function(l){return needsFollowupToday(l)||isStale(l);});
+  if(type==="contacted")return active.filter(wasContactedToday);
+  return active.filter(function(l){return l.status==="close";});
+}
+function renderStatListItems(q){
+  var query=(q||"").toLowerCase().trim();
+  var filtered=statListSource(statListType).filter(function(l){if(!query)return true;return [l.name,l.company,l.puesto,l.ciudad,l.pais].join(" ").toLowerCase().indexOf(query)>-1;});
+  var items=filtered.map(function(l){var meta=[l.company,l.puesto,l.ciudad].filter(function(v){return v&&v!=="\u2014";}).join(" \u00b7 ");if(l.archived)meta+=(meta?" \u00b7 ":"")+"sin seguimiento";return "<div class=\"lead-list-item\" onclick=\"closeModal();openDetail("+l.id+")\"><div class=\"lli-name\">"+l.name+"</div><div class=\"lli-meta\">"+meta+"</div></div>";}).join("")||"<div class=\"log-empty\">No hay contactos que coincidan</div>";
+  var list=document.getElementById("stat-list-items");if(list)list.innerHTML=items;
+}
 function showStatList(type){
   var titles={total:"Todos los contactos",followup:"Seguimiento pendiente hoy",contacted:"Atendidos hoy",closed:"Leads cerrados"};
-  var active=activeLeads();
-  var filtered;
-  if(type==="total")filtered=leads;
-  else if(type==="followup")filtered=active.filter(function(l){return needsFollowupToday(l)||isStale(l);});
-  else if(type==="contacted")filtered=active.filter(wasContactedToday);
-  else filtered=active.filter(function(l){return l.status==="close";});
-  var items=filtered.map(function(l){var meta=[l.company,l.puesto,l.ciudad].filter(function(v){return v&&v!=="\u2014";}).join(" \u00b7 ");if(l.archived)meta+=(meta?" \u00b7 ":"")+"sin seguimiento";return "<div class=\"lead-list-item\" onclick=\"closeModal();openDetail("+l.id+")\"><div class=\"lli-name\">"+l.name+"</div><div class=\"lli-meta\">"+meta+"</div></div>";}).join("")||"<div class=\"log-empty\">No hay contactos en esta categor\u00eda</div>";
-  document.getElementById("modal-root").innerHTML="<div class=\"overlay\" onclick=\"if(event.target===this)closeModal()\"><div class=\"modal modal-wide\"><h2>"+titles[type]+"</h2><div class=\"lead-list\">"+items+"</div><div class=\"modal-foot\"><button class=\"btn\" onclick=\"closeModal()\">Cerrar</button></div></div></div>";
+  statListType=type;
+  document.getElementById("modal-root").innerHTML="<div class=\"overlay\" onclick=\"if(event.target===this)closeModal()\"><div class=\"modal modal-wide\"><h2>"+titles[type]+"</h2>"
+    +"<div class=\"search-wrap\" style=\"margin-bottom:12px\"><span class=\"search-icon\">&#128269;</span><input class=\"search-bar\" placeholder=\"Buscar por nombre, empresa, ciudad\u2026\" oninput=\"renderStatListItems(this.value)\"></div>"
+    +"<div class=\"lead-list\" id=\"stat-list-items\"></div><div class=\"modal-foot\"><button class=\"btn\" onclick=\"closeModal()\">Cerrar</button></div></div></div>";
+  renderStatListItems("");
 }
 function render(q){
   var sb=document.getElementById("search-bar");
